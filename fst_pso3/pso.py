@@ -1,19 +1,18 @@
 import copy
 import logging
 import sys
-import concurrent.futures
-from typing import Callable, Optional
-
 import numpy as np
+import matplotlib.pyplot as plt
+from typing import Callable, Optional
 
 
 class Particle(object):
-    def __init__(self, dimentions: int, lower_bound: list, upper_bound: list):
+    def __init__(self, dimensions: int, lower_bound: list, upper_bound: list):
         assert len(lower_bound) == len(upper_bound)
-        assert dimentions == len(lower_bound)
+        assert dimensions == len(lower_bound)
 
-        self.position = np.random.uniform(lower_bound, upper_bound, dimentions)
-        self.velocity = np.zeros(dimentions)
+        self.position = np.random.uniform(lower_bound, upper_bound, dimensions)
+        self.velocity = np.zeros(dimensions)
         self.best_position = copy.deepcopy(self.position)
         self.best_fitness = sys.float_info.max
 
@@ -38,7 +37,7 @@ class PSO:
         upper_bound: list,
     ):
         assert len(lower_bound) == len(upper_bound)
-        self.dimentions = len(lower_bound)
+        self.dimensions = len(lower_bound)
 
         self.fitness = fitness
         self.iteration = 0
@@ -53,7 +52,7 @@ class PSO:
         self.upper_bound = upper_bound
 
         self.particles = [
-            Particle(self.dimentions, self.lower_bound, self.upper_bound)
+            Particle(self.dimensions, self.lower_bound, self.upper_bound)
             for _ in range(num_particles)
         ]
 
@@ -63,16 +62,6 @@ class PSO:
         logging.info("Launching parallel optimization.")
 
         while not self.termination_criterion():
-            # with concurrent.futures.ProcessPoolExecutor() as executor:
-
-            #     futures = {
-            #         executor.submit(self.update_particle, p): p for p in self.particles
-            #     }
-            #     updated_particles: list[Particle] = []
-            #     for future in concurrent.futures.as_completed(futures):
-            #         updated_particles.append(future.result())
-
-            #     self.particles = updated_particles
             updated_particles: list[Particle] = []
 
             for particle in self.particles:
@@ -107,13 +96,15 @@ class PSO:
 
         velocity = inertia_velocity + cognitive_velocity + social_velocity
 
-        # Apply velocity limits
-        velocity = np.minimum(
-            velocity, self.max_velocity * particle.max_velocity_multiplier
-        )
-        velocity = np.maximum(
-            velocity, self.max_velocity * particle.min_velocity_multiplier
-        )
+        max_velocity = self.max_velocity * particle.max_velocity_multiplier
+        min_velocity = self.max_velocity * particle.min_velocity_multiplier
+
+        # Check max velocity
+        velocity = np.clip(velocity, -max_velocity, max_velocity)
+
+        # Check min velocity
+        min_mask = np.abs(velocity) < min_velocity
+        velocity[min_mask] = np.sign(velocity[min_mask]) * min_velocity[min_mask]
 
         particle.velocity = velocity
 

@@ -8,7 +8,7 @@ def fitness(x):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    pso = PSO(fitness, 2, 100, 20, [-10] * 2, [10] * 2)
+    pso = PSO(fitness, 10, 100, 20, [-10] * 2, [10] * 2)
     result = pso.solve()
 
     print(result)
