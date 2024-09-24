@@ -1,5 +1,6 @@
 import logging
 from fst_pso3 import PSO
+from fst_pso3.fuzzy import FuzzyPSO
 
 
 def fitness(x):
@@ -8,7 +9,7 @@ def fitness(x):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    pso = PSO(fitness, 10, 100, 20, [-10] * 2, [10] * 2)
+    pso = FuzzyPSO(fitness, 400, 20, [-10] * 2, [10] * 2, num_particles=5)
     result = pso.solve()
 
     print(result)

@@ -1,4 +1,5 @@
 import copy
+from functools import lru_cache
 import logging
 import sys
 import numpy as np
@@ -15,6 +16,7 @@ class Particle(object):
         self.velocity = np.zeros(dimensions)
         self.best_position = copy.deepcopy(self.position)
         self.best_fitness = sys.float_info.max
+        self.current_fitness = sys.float_info.max
 
         self.step_magnitude = 0.0
         self.distance_from_best = sys.float_info.max
@@ -30,16 +32,22 @@ class PSO:
     def __init__(
         self,
         fitness: Callable[[np.array], float],
-        num_particles: int,
         max_iteration: int,
         max_stagnation: int,
         lower_bound: list,
         upper_bound: list,
+        num_particles: Optional[int] = None,
     ):
         assert len(lower_bound) == len(upper_bound)
         self.dimensions = len(lower_bound)
 
+        if num_particles is None:
+            self.num_particles = 2 + int(np.sqrt(self.dimensions))
+        else:
+            self.num_particles = num_particles
+
         self.fitness = fitness
+
         self.iteration = 0
         self.max_iteration = max_iteration
         self.since_last_improvement = 0
@@ -53,7 +61,7 @@ class PSO:
 
         self.particles = [
             Particle(self.dimensions, self.lower_bound, self.upper_bound)
-            for _ in range(num_particles)
+            for _ in range(self.num_particles)
         ]
 
         self.max_velocity = np.abs(np.array(upper_bound) - np.array(lower_bound))
@@ -140,7 +148,8 @@ class PSO:
             self.since_last_improvement = 0
 
     def calculate_fitness(self, particle: Particle) -> float:
-        return self.fitness(particle.position)
+        particle.current_fitness = self.fitness(particle.position)
+        return particle.current_fitness
 
     def termination_criterion(self) -> bool:
         if self.iteration >= self.max_iteration:
