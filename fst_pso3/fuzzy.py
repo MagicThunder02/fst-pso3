@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 from typing import Callable, List, Dict, Optional, Tuple
 from dataclasses import dataclass
@@ -18,6 +19,7 @@ class FuzzyThresholds:
 class FuzzyParticle(Particle):
     def __init__(self, dimensions: int, lower_bound: list, upper_bound: list):
         super().__init__(dimensions, lower_bound, upper_bound)
+
         self.phi = 0.0  # Performance change
         self.delta = 0.0  # Distance from personal best
 
@@ -59,6 +61,32 @@ class FuzzyPSO(PSO):
         fuzzy_reasoner.add_rules(rules)
 
         return fuzzy_reasoner
+
+    def phi(
+        self,
+        particle: FuzzyParticle,
+    ) -> float:
+
+        def calculate_right_factor() -> float:
+            min_fw_fn = min(self.estimated_worst_fitness, particle.current_fitness)
+            min_fw_fo = min(self.estimated_worst_fitness, particle.previous_fitness)
+
+            return (min_fw_fn - min_fw_fo) / abs(
+                self.estimated_worst_fitness - self.global_best_fitness
+            )
+
+        max_delta = np.max(self.max_velocity)
+
+        if max_delta == 0:
+            raise ValueError("move_max cannot be zero")
+
+        if particle.step_magnitude == 0:
+            return 0.0
+
+        left = particle.step_magnitude / max_delta
+        right = calculate_right_factor()
+
+        return left * right
 
     def _create_fuzzy_set(self, points: List[List[float]], term: str) -> FuzzySet:
         return FuzzySet(points=points, term=term, high_quality_interpolate=False)
@@ -104,48 +132,68 @@ class FuzzyPSO(PSO):
         return phi_rules + delta_rules
 
     def _get_outcome_mapping(self) -> Dict[str, Dict[str, float]]:
+        LOW_INERTIA = 0.3
+        MEDIUM_INERTIA = 0.5
+        HIGH_INERTIA = 1.0
+
+        LOW_SOCIAL = 1.0
+        MEDIUM_SOCIAL = 2.0
+        HIGH_SOCIAL = 3.0
+
+        LOW_COGNITIVE = 0.1
+        MEDIUM_COGNITIVE = 1.5
+        HIGH_COGNITIVE = 3.0
+
+        LOW_MINSP = 0
+        MEDIUM_MINSP = 0.001
+        HIGH_MINSP = 0.01
+
+        LOW_MAXSP = 0.1
+        MEDIUM_MAXSP = 0.15
+        HIGH_MAXSP = 0.2
+
         return {
             "WORSE": {
-                "INERTIA": 0.1,
-                "SOCIAL": 2.0,
-                "COGNITIVE": 1.5,
-                "MIN_VELOCITY": 0.1,
-                "MAX_VELOCITY": 1.0,
+                "INERTIA": LOW_INERTIA,
+                "SOCIAL": HIGH_SOCIAL,
+                "COGNITIVE": MEDIUM_COGNITIVE,
+                "MIN_VELOCITY": HIGH_MINSP,
+                "MAX_VELOCITY": HIGH_MAXSP,
             },
             "SAME": {
-                "INERTIA": 0.5,
-                "SOCIAL": 1.5,
-                "COGNITIVE": 1.5,
-                "MIN_VELOCITY": 0.05,
-                "MAX_VELOCITY": 0.5,
+                "INERTIA": MEDIUM_INERTIA,
+                "SOCIAL": MEDIUM_SOCIAL,
+                "COGNITIVE": MEDIUM_COGNITIVE,
+                "MIN_VELOCITY": LOW_MINSP,
+                "MAX_VELOCITY": MEDIUM_MAXSP,
             },
             "BETTER": {
-                "INERTIA": 0.9,
-                "SOCIAL": 1.0,
-                "COGNITIVE": 2.0,
-                "MIN_VELOCITY": 0.0,
-                "MAX_VELOCITY": 0.5,
+                "INERTIA": HIGH_INERTIA,
+                "SOCIAL": LOW_SOCIAL,
+                "COGNITIVE": HIGH_COGNITIVE,
+                "MIN_VELOCITY": LOW_MINSP,
+                "MAX_VELOCITY": MEDIUM_MAXSP,
             },
             "DELTA_SAME": {
-                "INERTIA": 0.1,
-                "SOCIAL": 1.5,
-                "COGNITIVE": 1.5,
-                "MIN_VELOCITY": 0.1,
-                "MAX_VELOCITY": 0.3,
+                "INERTIA": LOW_INERTIA,
+                "SOCIAL": MEDIUM_SOCIAL,
+                "COGNITIVE": MEDIUM_COGNITIVE,
+                "MIN_VELOCITY": MEDIUM_MINSP,
+                "MAX_VELOCITY": LOW_MAXSP,
             },
             "DELTA_NEAR": {
-                "INERTIA": 0.5,
-                "SOCIAL": 1.0,
-                "COGNITIVE": 1.5,
-                "MIN_VELOCITY": 0.05,
-                "MAX_VELOCITY": 0.5,
+                "INERTIA": MEDIUM_INERTIA,
+                "SOCIAL": LOW_SOCIAL,
+                "COGNITIVE": MEDIUM_COGNITIVE,
+                "MIN_VELOCITY": MEDIUM_MINSP,
+                "MAX_VELOCITY": MEDIUM_MAXSP,
             },
             "DELTA_FAR": {
-                "INERTIA": 0.1,
-                "SOCIAL": 1.5,
-                "COGNITIVE": 1.5,
-                "MIN_VELOCITY": 0.1,
-                "MAX_VELOCITY": 0.3,
+                "INERTIA": LOW_INERTIA,
+                "SOCIAL": MEDIUM_SOCIAL,
+                "COGNITIVE": MEDIUM_COGNITIVE,
+                "MIN_VELOCITY": MEDIUM_MINSP,
+                "MAX_VELOCITY": LOW_MAXSP,
             },
         }
 
@@ -177,10 +225,8 @@ class FuzzyPSO(PSO):
 
     def update_fuzzy_parameters(self, particle: FuzzyParticle):
         current_fitness = particle.current_fitness
-        particle.phi = (particle.best_fitness - current_fitness) / abs(
-            particle.best_fitness
-        )
-        particle.delta = np.linalg.norm(particle.position - particle.best_position)
+        particle.phi = self.phi(particle)
+        particle.delta = np.linalg.norm(particle.position - self.global_best_position)
 
         self.fuzzy_reasoner.set_variable("PHI", particle.phi)
         self.fuzzy_reasoner.set_variable("DELTA", particle.delta)

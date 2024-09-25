@@ -16,7 +16,9 @@ class Particle(object):
         self.velocity = np.zeros(dimensions)
         self.best_position = copy.deepcopy(self.position)
         self.best_fitness = sys.float_info.max
+
         self.current_fitness = sys.float_info.max
+        self.previous_fitness = sys.float_info.max
 
         self.step_magnitude = 0.0
         self.distance_from_best = sys.float_info.max
@@ -42,7 +44,7 @@ class PSO:
         self.dimensions = len(lower_bound)
 
         if num_particles is None:
-            self.num_particles = 2 + int(np.sqrt(self.dimensions))
+            self.num_particles = int(10 + 2 * np.sqrt(self.dimensions))
         else:
             self.num_particles = num_particles
 
@@ -55,6 +57,7 @@ class PSO:
 
         self.global_best_position: Optional[np.array] = None
         self.global_best_fitness = sys.float_info.max
+        self.estimated_worst_fitness = sys.float_info.min
 
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
@@ -135,8 +138,16 @@ class PSO:
             particle.best_fitness = fitness
 
     def update_global_best(self):
+
         updated = False
         for particle in self.particles:
+
+            # Update estimated worst fitness at first iteration
+            if self.iteration == 0:
+                if particle.best_fitness > self.estimated_worst_fitness:
+                    self.estimated_worst_fitness = particle.best_fitness
+
+            # Update global best
             if particle.best_fitness < self.global_best_fitness:
                 self.global_best_position = copy.deepcopy(particle.best_position)
                 self.global_best_fitness = particle.best_fitness
@@ -148,6 +159,7 @@ class PSO:
             self.since_last_improvement = 0
 
     def calculate_fitness(self, particle: Particle) -> float:
+        particle.previous_fitness = particle.current_fitness
         particle.current_fitness = self.fitness(particle.position)
         return particle.current_fitness
 

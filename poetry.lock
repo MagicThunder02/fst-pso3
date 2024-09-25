@@ -165,6 +165,20 @@ unicode = ["unicodedata2 (>=15.1.0)"]
 woff = ["brotli (>=1.0.1)", "brotlicffi (>=0.8.0)", "zopfli (>=0.1.4)"]
 
 [[package]]
+name = "fst-pso"
+version = "1.8.1"
+description = "Fuzzy Self-Tuning PSO global optimization library"
+optional = false
+python-versions = "*"
+files = [
+    {file = "fst-pso-1.8.1.tar.gz", hash = "sha256:b3d16ec27b0b4d36b35b306af40c00cd0b34e5e0a9e30a71ed02490e8954a26a"},
+]
+
+[package.dependencies]
+miniful = "*"
+numpy = "*"
+
+[[package]]
 name = "kiwisolver"
 version = "1.4.7"
 description = "A fast implementation of the Cassowary constraint solver"
@@ -626,4 +640,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "5c5c91e00bfcdd47f89902ab2a9ebeef71c1ba230b79a85c66b8fefe946fa8e7"
+content-hash = "c91bb2c4f8d97424480dd7edba9dac34ae1a1f3837492896493a1983f1ae7bf7"

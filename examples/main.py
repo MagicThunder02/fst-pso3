@@ -1,4 +1,5 @@
 import logging
+import sys
 
 import numpy as np
 from fst_pso3 import PSO
@@ -41,13 +42,14 @@ if __name__ == "__main__":
     psolist = []
     fuzzilist = []
     for i in range(100):
-        pso = PSO(ackley, 50, 20, [-10] * 2, [10] * 2, num_particles=20)
-        fuzzypso = FuzzyPSO(ackley, 50, 20, [-10] * 2, [10] * 2, num_particles=20)
+        pso = PSO(ackley, 50, sys.float_info.max, [-10] * 2, [10] * 2)
+        fuzzypso = FuzzyPSO(ackley, 50, sys.float_info.max, [-10] * 2, [10] * 2)
+
         result = pso.solve()
         resultfuzzy = fuzzypso.solve()
 
-        psolist.append(result[1])
-        fuzzilist.append(resultfuzzy[1])
+        psolist.append(np.linalg.norm(result[0]))
+        fuzzilist.append(np.linalg.norm(resultfuzzy[0]))
 
     print("PSO")
     print(np.mean(psolist))
